@@ -41,7 +41,10 @@ HashTable *ReadIntoHashtable(char *file, bool fnv32Mode) {
         
         fclose(fp);
         printf("Loaded %d entries\n", count);
-    } else printf("Couldnt open file\n");
+    } else {
+        printf("Couldnt open file\n");
+        map = NULL;
+    }
     
     return map;
 }

@@ -14,6 +14,8 @@ HashTable *suffixTable;
 
 char *tokenFile = NULL;
 int maxDepth = 0, charSetIndex = -1;
+unsigned startIndex = 0;
+struct LinkedList *offsetList = NULL;
 
 bool fnv32Mode = false;
 bool tokenize = false;
@@ -34,11 +36,10 @@ char *charset[CHARSET_LEN] = {
 
 #define CHECKEMPTY(x) (x == NULL ? "" : x)
 
-void check_32(char *gen) {
-    uint64_t hash = 0;
+static inline void check_32(char *gen) {
     int i = 0;
-    while(prefixes[i].hash){
-        hash = FNVA1Hash_32(prefixes[i].hash, gen);
+    while(prefixes[i++].hash){
+        uint64_t hash = FNVA1Hash_32(prefixes[i].hash, gen);
         if(map_has(suffixTable, hash)){
             char *v = map_get(suffixTable, hash);
             char buffer[MAX_STR_SIZE] = {};
@@ -49,17 +50,14 @@ void check_32(char *gen) {
             fclose(fp);
             map_remove(suffixTable, hash); //increase odds of O(1)
         }
-        
-        i++;
     }
     return;
 }
 
-void check(char *gen) {
-    uint64_t hash = 0;
+static inline void check(char *gen) {
     int i = 0;
-    while(prefixes[i].hash){
-        hash = FNVA1Hash(prefixes[i].hash, gen);
+    while(prefixes[i++].hash){
+        uint64_t hash = FNVA1Hash(prefixes[i].hash, gen);
         if(map_has(suffixTable, hash)){
             char *v = map_get(suffixTable, hash);
             char buffer[MAX_STR_SIZE] = {};
@@ -70,8 +68,6 @@ void check(char *gen) {
             fclose(fp);
             map_remove(suffixTable, hash); //increase odds of O(1)
         }
-        
-        i++;
     }
     return;
 }
@@ -80,7 +76,15 @@ void BruteForce (char * genStr, char * insertion, size_t maxlen, char * alphabet
     callback(genStr);
     if (!maxlen) return;
     insertion[1] = 0;
-    for (char * p = alphabet; *p; p++) {
+
+    char *p = alphabet;
+
+    if(startIndex) {
+        p += startIndex;
+        startIndex = 0;
+    }
+    
+    for (; *p; p++) {
         *insertion = *p;
         BruteForce(genStr, insertion + 1, maxlen - 1, alphabet, callback);
     }
@@ -91,8 +95,16 @@ void BruteForce (char * genStr, char * insertion, size_t maxlen, char * alphabet
 void BruteForceToken(char *genStr, char *insertion, size_t maxlen, struct LinkedList *tokens, void (*callback)(char *)) {
     callback(genStr);
     if (!maxlen) return;
+
+    struct LinkedList *t = tokens;
+
+    if(startIndex) {
+        for(unsigned i = 0; i < startIndex; i++) 
+            t = t->next;
+        startIndex = 0;
+    }
     
-    for (struct LinkedList *t = tokens; t->next != NULL; t = t->next) {
+    for (; t->next != NULL; t = t->next) {
         strcpy(insertion, t->string);
         BruteForceToken(genStr, insertion + strlen(t->string), maxlen - 1, tokens, callback);
     }
@@ -115,6 +127,9 @@ void ParseArgs(int argc, char **argv) {
                     tokenize = false;
                     charSetIndex = atoi(argv[++i]);
                 }
+                if(!strcmp(argv[i], "-s")) {
+                    startIndex = atoi(argv[++i]);
+                }
                 break;
             }
             default:
@@ -134,6 +149,7 @@ int main(int argc, char **argv) {
             "Options:\n"
             "\t-b <charset>\t| brute force\n"
             "\t-t <token file>\t| tokize\n"
+            "\t-s <start index>\t| Index in the dataset to start\n"
             "\t-fnv32\t\t| 32bit mode\n"
             "\nCharsets:\n"
             );
@@ -166,7 +182,10 @@ int main(int argc, char **argv) {
     }
     
     prefixes = ReadIntoPair("prefixes.bin", fnv32Mode);
+    if(!prefixes) return -1;
+
     suffixTable = ReadIntoHashtable("suffixes.bin", fnv32Mode);
+    if(!suffixTable) return -1;
     
     printf("--------------------------\n");
 
