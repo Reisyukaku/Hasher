@@ -33,9 +33,12 @@ HashTable *ReadIntoHashtable(char *file) {
             uint8_t len = 0;
             fread(&hash, sizeof(uint64_t), 1, fp);
             fread(&len, 1, 1, fp);
-            char *str = NULL;
-            if(len > 0) str = (char*)malloc(len+1);
-            fread(str, len, 1, fp);
+            char *str = "";
+            if(len > 0) 
+            {
+                str = (char*)malloc(len+1);
+                fread(str, len, 1, fp);
+            }
             map_put(map, hash, str);
         }
         
@@ -66,9 +69,12 @@ HashPair *ReadIntoPair(char *file) {
             uint8_t len = 0;
             fread(&hash, sizeof(uint64_t), 1, fp);
             fread(&len, 1, 1, fp);
-            char *str = NULL;
-            if(len > 0) str = (char*)malloc(len+1);
-            fread(str, len, 1, fp);
+            char *str = "";
+            if(len > 0) 
+            {
+                str = (char*)malloc(len+1);
+                fread(str, len, 1, fp);
+            }
             HashPair p;
             p.hash = hash;
             p.string = str;
@@ -89,7 +95,7 @@ struct LinkedList *ReadTokens(char *file) {
         printf("Couldnt open token file %s\n", file);
         return NULL;
     }
-    char buf[MAX_STR_SIZE];
+    char buf[MAX_STR_SIZE] = {};
     struct LinkedList *newlist = rootlist;
     while(fgets(buf, MAX_STR_SIZE, fp)){
         int sz = strlen(buf);

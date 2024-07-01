@@ -4,7 +4,6 @@
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>
-#include <assert.h>
 #include <inttypes.h>
 #include "fnv.h"
 #include "type.h"
@@ -145,7 +144,6 @@ int main(int argc, char **argv) {
 
     ParseArgs(argc, argv);
     
-    
     if(!tokenize && charSetIndex < 0) {
         fputs("Error in arguments: pick charset or tokenize\n", stdout);
         return 1;
@@ -159,7 +157,7 @@ int main(int argc, char **argv) {
         printf("Brute force with char set:\n%s\n", charset[charSetIndex]);
     
     //load tables/lists
-    struct LinkedList* tokenLinkList = NULL;
+    struct LinkedList* tokenLinkList;
     if(tokenize) {
         tokenLinkList = ReadTokens(tokenFile);
     }
@@ -174,7 +172,7 @@ int main(int argc, char **argv) {
 
     int i = 0;
     while(prefixes[i].hash){
-        char *genStr = calloc(1, MAX_STR_SIZE);
+        char *genStr = (char *)calloc(1, MAX_STR_SIZE);
 
         if(tokenize)
             BruteForceToken(genStr, genStr, i, FNVA1Hash(FNV64_BASIS, prefixes[i].string), maxDepth, tokenLinkList, check);
@@ -185,6 +183,7 @@ int main(int argc, char **argv) {
         i++;
     }
     map_free(suffixTable);
+    free(tokenLinkList);
     
     return 0;
 }

@@ -1,15 +1,12 @@
 #include "fnv.h"
 
 uint64_t FNVA1Hash(uint64_t basis, const char *str){
-    int len = strlen(str);
-    const uint64_t fnv64Offset = basis;
-    const uint64_t fnv64Prime = FNV64_PRIME;
-    uint64_t hash = fnv64Offset;
+    uint64_t hash = basis;
 
-    for (int i = 0; i < len; i++)
+    for (int i = 0; str[i] != 0; i++)
     {
         hash = hash ^ str[i];
-        hash *= fnv64Prime;
+        hash *= FNV64_PRIME;
     }
 
     return hash;
