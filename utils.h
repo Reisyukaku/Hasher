@@ -7,6 +7,6 @@
 #define MAX_STR_SIZE 256
 
 char ** LinkedListToArray(struct LinkedList *list);
-HashTable *ReadIntoHashtable(char *file, bool fnv32Mode);
-HashPair *ReadIntoPair(char *file, bool fnv32Mode);
+HashTable *ReadIntoHashtable(char *file);
+HashPair *ReadIntoPair(char *file);
 struct LinkedList *ReadTokens(char *file);

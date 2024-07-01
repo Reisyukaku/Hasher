@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #define FNV64_BASIS 0xCBF29CE484222645
 #define FNV32_BASIS 0x811C9DC5
@@ -17,3 +18,5 @@ uint64_t FNVA1Hash_reverse(uint64_t basis, const char *str);
 
 uint32_t FNVA1Hash_32(uint32_t basis, const char *str);
 uint32_t FNVA1Hash_32_reverse(uint32_t basis, const char *str);
+
+uint64_t FNVA1Hash_rec(uint64_t basis, char *str);

@@ -16,7 +16,7 @@ char ** LinkedListToArray(struct LinkedList *list) {
 }
 
 //Read into hashmap
-HashTable *ReadIntoHashtable(char *file, bool fnv32Mode) {
+HashTable *ReadIntoHashtable(char *file) {
     printf("Reading table %s into RAM\n", file);
     
     FILE *fp = fopen(file, "rb");
@@ -31,7 +31,7 @@ HashTable *ReadIntoHashtable(char *file, bool fnv32Mode) {
         for(uint32_t i = 0; i < count; i++){
             uint64_t hash = 0;
             uint8_t len = 0;
-            fread(&hash, fnv32Mode ? sizeof(uint32_t) : sizeof(uint64_t), 1, fp);
+            fread(&hash, sizeof(uint64_t), 1, fp);
             fread(&len, 1, 1, fp);
             char *str = NULL;
             if(len > 0) str = (char*)malloc(len+1);
@@ -50,7 +50,7 @@ HashTable *ReadIntoHashtable(char *file, bool fnv32Mode) {
 }
 
 //Read into array
-HashPair *ReadIntoPair(char *file, bool fnv32Mode) {
+HashPair *ReadIntoPair(char *file) {
     printf("Reading table %s into RAM\n", file);
     
     FILE *fp = fopen(file, "rb");
@@ -64,7 +64,7 @@ HashPair *ReadIntoPair(char *file, bool fnv32Mode) {
         for(uint32_t i = 0; i < count; i++){
             uint64_t hash = 0;
             uint8_t len = 0;
-            fread(&hash, fnv32Mode ? sizeof(uint32_t) : sizeof(uint64_t), 1, fp);
+            fread(&hash, sizeof(uint64_t), 1, fp);
             fread(&len, 1, 1, fp);
             char *str = NULL;
             if(len > 0) str = (char*)malloc(len+1);

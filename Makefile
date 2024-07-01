@@ -3,7 +3,7 @@ TARGET = hasher
 SRC = main.c hashmap.c fnv.c utils.c
 
 # Compiler and compiler flags
-CC = gcc
+CC = clang
 CFLAGS = -Wall -Wextra -std=c99 -Os
 
 # Default target: build the executable

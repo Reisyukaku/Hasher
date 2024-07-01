@@ -1,3 +1,5 @@
 hasher
 hasher.exe
 *.bin
+.vscode
+*.txt

@@ -59,3 +59,12 @@ uint32_t FNVA1Hash_32_reverse(uint32_t basis, const char *str){
 
     return hash;
 }
+
+uint64_t FNVA1Hash_rec(uint64_t basis, char *str){
+    if(*str != 0) {
+        basis = basis ^ str[0];
+        basis *= FNV64_PRIME;
+        FNVA1Hash_rec(basis, &str[1]);
+    }
+    return basis;
+}
