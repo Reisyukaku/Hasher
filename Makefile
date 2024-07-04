@@ -4,7 +4,7 @@ SRC = main.c hashmap.c fnv.c utils.c
 
 # Compiler and compiler flags
 CC = clang
-CFLAGS = -Wall -Wextra -std=c99 -Os
+CFLAGS = -Wall -Wextra -std=c99 -Os 
 
 # Default target: build the executable
 all: $(TARGET)

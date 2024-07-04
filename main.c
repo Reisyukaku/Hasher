@@ -159,9 +159,8 @@ int main(int argc, char **argv) {
     
     //load tables/lists
     struct LinkedList* tokenLinkList;
-    if(tokenize) {
+    if(tokenize)
         tokenLinkList = ReadTokens(tokenFile);
-    }
     
     prefixes = ReadIntoPair("prefixes.bin");
     if(!prefixes) return -1;
@@ -184,7 +183,9 @@ int main(int argc, char **argv) {
         i++;
     }
     map_free(suffixTable);
-    free(tokenLinkList);
+    free(prefixes);
+    if(tokenize)
+        FreeTokens(tokenLinkList);
     
     return 0;
 }

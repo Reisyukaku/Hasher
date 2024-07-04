@@ -26,7 +26,7 @@ HashTable *ReadIntoHashtable(char *file) {
         uint32_t count = 0;
         
         fread(&count, sizeof(uint32_t), 1, fp);
-        struct TblEntry *ents = calloc(count, sizeof(struct TblEntry));
+        struct TblEntry *ents = (struct TblEntry*) calloc(count, sizeof(struct TblEntry));
         map = map_create(ents, count);
         for(uint32_t i = 0; i < count; i++){
             uint64_t hash = 0;
@@ -96,16 +96,27 @@ struct LinkedList *ReadTokens(char *file) {
         return NULL;
     }
     char buf[MAX_STR_SIZE] = {};
-    struct LinkedList *newlist = rootlist;
+    struct LinkedList *newList = rootlist;
     while(fgets(buf, MAX_STR_SIZE, fp)){
+        newList = calloc(1, sizeof(struct LinkedList));
         int sz = strlen(buf);
         for(int j = 0; j < sz; j++)
             if(buf[j] == '\n' || buf[j] == '\r') buf[j] = 0;
         char *str = malloc(strlen(buf));
         strcpy(str, buf);
-        newlist->string = str;
-        newlist->next = calloc(1, sizeof(struct LinkedList));
-        newlist = newlist->next;
+        newList->string = str;
+        newList = newList->next;
     }
     return rootlist;
+}
+
+void FreeTokens(struct LinkedList *list) {
+    struct LinkedList *next;
+    do{
+        if(list->string)
+            free(list->string);
+        next = list->next;
+        free(list);
+        list = next;
+    } while(next != NULL);
 }
