@@ -54,6 +54,7 @@ static inline void check(int pref, char *gen, uint64_t hash) {
 
 void BruteForce (char * genStr, char * insertion, int pref, uint64_t hash, size_t maxlen, char * alphabet, void (* callback)(int, char *, uint64_t)) {
     callback(pref, genStr, hash);
+
     if (!maxlen) return;
     insertion[1] = 0;
 
@@ -68,7 +69,7 @@ void BruteForce (char * genStr, char * insertion, int pref, uint64_t hash, size_
     for (; *p; p++) {
         *insertion = *p;
         h = (hash ^ *p) * FNV64_PRIME;
-        BruteForce(genStr, insertion + 1, h, maxlen - 1, pref, alphabet, callback);
+        BruteForce(genStr, insertion + 1, pref, h, maxlen - 1, alphabet, callback);
     }
     *insertion = 0;
     return;
