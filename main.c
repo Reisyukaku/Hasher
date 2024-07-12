@@ -2,9 +2,8 @@
 #include <stdint.h>
 #include <malloc.h>
 #include <string.h>
-#include <math.h>
-#include <stdbool.h>
 #include <inttypes.h>
+#include <pthread.h>
 #include "fnv.h"
 #include "type.h"
 #include "utils.h"
@@ -17,9 +16,12 @@ char *tokenFile = NULL;
 int maxDepth = 0, charSetIndex = -1;
 unsigned startIndex = 0;
 struct LinkedList *offsetList = NULL;
+struct LinkedList *tokenLinkList = NULL;
 
 bool tokenize = false;
 char **tokenList = NULL;
+
+pthread_mutex_t log_mutex;
 
 #define CHARSET_LEN 10
 char *charset[CHARSET_LEN] = {
@@ -38,8 +40,10 @@ char *charset[CHARSET_LEN] = {
 #define CHECKEMPTY(x) (x == NULL ? "" : x)
 
 static inline void check(int pref, char *gen, uint64_t hash) {
-    //printf("%s%s | %" PRIx64 "\n", prefixes[pref].string, gen, hash);
+    
+    //printf("%d %s%s | %" PRIx64 "\n", pref, prefixes[pref].string, gen, hash);
     if(map_has(suffixTable, hash)){
+        pthread_mutex_lock(&log_mutex);
         char *v = map_get(suffixTable, hash);
         char buffer[MAX_STR_SIZE] = {};
         snprintf(buffer, MAX_STR_SIZE, "%s%s%s\n", CHECKEMPTY(prefixes[pref].string), CHECKEMPTY(gen), CHECKEMPTY(v));
@@ -48,7 +52,9 @@ static inline void check(int pref, char *gen, uint64_t hash) {
         fwrite(buffer, strlen(buffer), 1, fp);
         fclose(fp);
         map_remove(suffixTable, hash); //increase odds of O(1)
+        pthread_mutex_unlock(&log_mutex);
     }
+    
     return;
 }
 
@@ -97,6 +103,25 @@ void BruteForceToken(char *genStr, char *insertion, int pref, uint64_t hash, siz
     }
     *insertion = 0;
     return;
+}
+#include <assert.h>
+void *DoWork(void *args)
+{
+    int i = *(int*)args;
+    free(args);
+
+    
+
+    char *genStr = (char *)calloc(1, MAX_STR_SIZE);
+
+    if(tokenize)
+        BruteForceToken(genStr, genStr, i, FNVA1Hash(FNV64_BASIS, prefixes[i].string), maxDepth, tokenLinkList, check);
+    else
+        BruteForce(genStr, genStr, i, FNVA1Hash(FNV64_BASIS, prefixes[i].string), maxDepth, charset[charSetIndex], check);
+
+    free(genStr);
+
+    pthread_exit(NULL);
 }
 
 //Parse arguments
@@ -158,34 +183,43 @@ int main(int argc, char **argv) {
         printf("Brute force with char set:\n%s\n", charset[charSetIndex]);
     
     //load tables/lists
-    struct LinkedList* tokenLinkList;
     if(tokenize)
         tokenLinkList = ReadTokens(tokenFile);
-    
-    prefixes = ReadIntoPair("prefixes.bin");
+
+    int prefixCnt = 0;
+    prefixes = ReadIntoPair("prefixes.bin", &prefixCnt);
     if(!prefixes) return -1;
 
     suffixTable = ReadIntoHashtable("suffixes.bin");
     if(!suffixTable) return -1;
     
+    pthread_mutex_init(&log_mutex, NULL);
+
+    //Create threads
+    int i = 0;
+    pthread_t threads[prefixCnt];
+    for (i = 0; i < prefixCnt; i++)
+    {
+        int *arg = malloc(sizeof(int*));
+        *arg = i;
+        pthread_create(&threads[i], NULL, DoWork, arg);
+    }
+    printf("Created %d threads!\n", i);
+
     printf("--------------------------\n");
 
-    int i = 0;
-    while(prefixes[i].hash){
-        char *genStr = (char *)calloc(1, MAX_STR_SIZE);
-
-        if(tokenize)
-            BruteForceToken(genStr, genStr, i, FNVA1Hash(FNV64_BASIS, prefixes[i].string), maxDepth, tokenLinkList, check);
-        else
-            BruteForce(genStr, genStr, i, FNVA1Hash(FNV64_BASIS, prefixes[i].string), maxDepth, charset[charSetIndex], check);
-
-        free(genStr);
-        i++;
+    //Sync
+    for (i = 0; i < prefixCnt; i++)
+    {
+        pthread_join(threads[i], NULL);
     }
+
     map_free(suffixTable);
     free(prefixes);
     if(tokenize)
         FreeTokens(tokenLinkList);
+
+    pthread_mutex_destroy(&log_mutex);
     
     return 0;
 }
