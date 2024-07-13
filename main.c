@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <malloc.h>
-#include <string.h>
-#include <inttypes.h>
 #include <pthread.h>
 #include "fnv.h"
 #include "type.h"
@@ -158,8 +153,8 @@ int main(int argc, char **argv) {
         printf("Usage: %s [options] <depth>\n", argv[0]);
         printf(
             "Options:\n"
-            "\t-b <charset>\t| brute force\n"
-            "\t-t <token file>\t| tokize\n"
+            "\t-b <charset>\t\t| brute force\n"
+            "\t-t <token file>\t\t| tokize\n"
             "\t-s <start index>\t| Index in the dataset to start\n"
             "\nCharsets:\n"
             );

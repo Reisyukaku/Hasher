@@ -1,9 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
+#include "type.h"
 
 struct TblEntry {
     uint64_t hashKey;

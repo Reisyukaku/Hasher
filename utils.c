@@ -120,3 +120,12 @@ void FreeTokens(struct LinkedList *list) {
         list = next;
     } while(next != NULL);
 }
+
+int atoi(char *p) {
+    int k = 0;
+    while (*p) {
+        k = (k << 3) + (k << 1) + (*p) - '0';
+        p++;
+     }
+     return k;
+}

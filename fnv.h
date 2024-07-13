@@ -1,8 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
+#include "type.h"
 
 #define FNV64_BASIS 0xCBF29CE484222645
 #define FNV32_BASIS 0x811C9DC5
