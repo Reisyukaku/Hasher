@@ -1,8 +1,13 @@
 #include <pthread.h>
+#include <sched.h>
+#include <time.h>
 #include "fnv.h"
 #include "type.h"
 #include "utils.h"
 #include "hashmap.h"
+
+struct timespec start, end;
+static unsigned long long hashCnt = 0;
 
 HashPair *prefixes;
 HashTable *suffixTable;
@@ -12,6 +17,7 @@ int maxDepth = 0, charSetIndex = -1;
 unsigned startIndex = 0;
 struct LinkedList *offsetList = NULL;
 struct LinkedList *tokenLinkList = NULL;
+int priority = -1;
 
 bool tokenize = false;
 char **tokenList = NULL;
@@ -35,7 +41,7 @@ char *charset[CHARSET_LEN] = {
 #define CHECKEMPTY(x) (x == NULL ? "" : x)
 
 static inline void check(int pref, char *gen, uint64_t hash) {
-    
+    hashCnt++;
     //printf("%d %s%s | %" PRIx64 "\n", pref, prefixes[pref].string, gen, hash);
     if(map_has(suffixTable, hash)){
         pthread_mutex_lock(&log_mutex);
@@ -99,16 +105,14 @@ void BruteForceToken(char *genStr, char *insertion, int pref, uint64_t hash, siz
     *insertion = 0;
     return;
 }
-#include <assert.h>
+
 void *DoWork(void *args)
 {
     int i = *(int*)args;
     free(args);
 
-    
-
     char *genStr = (char *)calloc(1, MAX_STR_SIZE);
-
+    
     if(tokenize)
         BruteForceToken(genStr, genStr, i, FNVA1Hash(FNV64_BASIS, prefixes[i].string), maxDepth, tokenLinkList, check);
     else
@@ -136,6 +140,10 @@ void ParseArgs(int argc, char **argv) {
                 if(!strcmp(argv[i], "-s")) {
                     startIndex = atoi(argv[++i]);
                 }
+                if(!strcmp(argv[i], "-p")) {
+                    int p = atoi(argv[++i]);
+                    priority = (p > 99) ? 99 : p;
+                }
                 break;
             }
             default:
@@ -156,6 +164,7 @@ int main(int argc, char **argv) {
             "\t-b <charset>\t\t| brute force\n"
             "\t-t <token file>\t\t| tokize\n"
             "\t-s <start index>\t| Index in the dataset to start\n"
+            "\t-p Enable priority threads (may require su)\n"
             "\nCharsets:\n"
             );
         for(int i = 0; i < CHARSET_LEN; i++)
@@ -176,6 +185,9 @@ int main(int argc, char **argv) {
         printf("Tokenized with file\n%s\n", tokenFile);
     else 
         printf("Brute force with char set:\n%s\n", charset[charSetIndex]);
+
+    if(priority >= 0)
+        printf("Priority: %d\n", priority);
     
     //load tables/lists
     if(tokenize)
@@ -192,12 +204,32 @@ int main(int argc, char **argv) {
 
     //Create threads
     int i = 0;
+    
+    pthread_attr_t attrp;
+    struct sched_param param;
     pthread_t threads[prefixCnt];
+
+    //Setup scheduler policy
+    pthread_attr_init(&attrp);
+
+    int sched = 0;
+    sched = pthread_attr_getschedparam (&attrp, &param);
+    R_FAIL(sched, "Error getting schedule policy.\n")
+    param.sched_priority = priority;
+    sched = pthread_attr_setinheritsched (&attrp, PTHREAD_EXPLICIT_SCHED);
+    R_FAIL(sched, "Error setting explicit schedule.\n")
+    sched = pthread_attr_setschedpolicy(&attrp, SCHED_RR);
+    R_FAIL(sched, "Error setting schedule policy.\n")
+    sched = pthread_attr_setschedparam (&attrp, &param);
+    R_FAIL(sched, "Error setting schedule param.\n")
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
     for (i = 0; i < prefixCnt; i++)
     {
         int *arg = malloc(sizeof(int*));
         *arg = i;
-        pthread_create(&threads[i], NULL, DoWork, arg);
+        int res = pthread_create(&threads[i], (priority >= 0) ? &attrp : NULL, DoWork, arg);
+        R_FAIL(res, "Failed to create thread. Err: %d\n", res)
     }
     printf("Created %d threads!\n", i);
 
@@ -208,6 +240,14 @@ int main(int argc, char **argv) {
     {
         pthread_join(threads[i], NULL);
     }
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double elapsed = end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1e9;
+    double hashes_per_second = hashCnt / elapsed;
+    printf("--------------------------\n");
+    printf("Elapsed time: %fs\n", elapsed);
+    printf("%f hashes per second\n", hashes_per_second);
+    pthread_attr_destroy(&attrp);
 
     map_free(suffixTable);
     free(prefixes);
